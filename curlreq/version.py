@@ -19,10 +19,10 @@ def get_dev_version() -> str:
 
     here = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
     try:  # pragma: no cover
-        # Check that we're in the httpreq repository
-        # 60c01db8a49ceb092173896cd01bffc574e05999 is the first httpreq commit.
+        # Check that we're in the curlreq repository
+        # 4814183a6c1ce9bf452ab3310a8a892a2213a9a0 is the first curlreq commit.
         subprocess.run(
-            ["git", "cat-file", "-e", "60c01db8a49ceb092173896cd01bffc574e05999"],
+            ["git", "cat-file", "-e", "4814183a6c1ce9bf452ab3310a8a892a2213a9a0"],
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
             cwd=here,
