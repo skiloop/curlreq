@@ -1,9 +1,10 @@
 import unittest
 from copy import deepcopy
 
+import pycurl
 from proxy import Proxy
 
-from curlreq import Client, get_supported_http_versions
+from curlreq import Client, get_supported_http_versions, SSLOptions
 from test_utils import test_request_with_client
 
 
@@ -31,6 +32,15 @@ class ClientTests(unittest.TestCase):
         for ver in get_supported_http_versions():
             cli = Client(http_version=ver)
             test_request_with_client(self, cli, "GET", self.test_https_url, **self.options)
+
+    def testCurlOptions(self):
+        options = [SSLOptions()]
+        options[0].ssl_version = pycurl.SSLVERSION_MAX_TLSv1_2
+        self.cli.curl_opts = options
+        try:
+            self.cli.get(self.test_https_url)
+        except pycurl.error as ev:
+            self.fail(f"curl options failed to apply: {ev}")
 
 
 if __name__ == '__main__':
