@@ -2,11 +2,13 @@
 HTTP client
 """
 import abc
-from io import BytesIO
+from io import BytesIO, StringIO
 from typing import Optional, List, Union
 from urllib.parse import urlparse
 
 import pycurl
+
+from exceptions import InvalidMethod
 
 __HTTP_VERSION = {
     "http1.1": pycurl.CURL_HTTP_VERSION_1_1,
@@ -23,7 +25,7 @@ class Curl(pycurl.Curl):
     """
     :class: `pycurl.Curl <Curl>` Wrapper
     """
-    METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"]
+    METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD", "TRACE"]
 
     def __init__(self, after_reset: callable = None):
         super(Curl, self).__init__()
@@ -61,19 +63,19 @@ class Curl(pycurl.Curl):
     def do_req(self, request: PreparedRequest, **kwargs) -> Optional[Response]:
         """
         send request and fetch response
-        :param request: :class: `curlreq.Request <Request>` http request object
-        :param url: request url
-        :param proxies: (Optional) Proxies to use,
-                like {"http":"http://localhost:8080","https":"http://localhost:8080"}
-        :type proxies: dict
+        :param request: :class: `curlreq.PreparedRequest <PreparedRequest>` http request
+        :param proxies: (Optional) Proxies to use.
+        :type proxies: dict, in format of {"http":"http://localhost:8080",
+                            "https":"http://localhost:8080"}
         :param timeout: (Optional) Request timeout, either float or tuple,
-                        if tuple, connection timeout and read timeout are seperately specified,
+                        if tuple, connection timeout and read timeout are separately specified,
                         if float, the two are the same. Defaults: use the default setting of libcurl
         :param allow_redirects: (Optional) indicate that whether to follow redirection.
                         True to follow redirection otherwise False. Defaults: False
         :return: :class: `curlreq.Response <Response>` object or None
         """
         self.reset()
+        self._prepare_kwargs(request.url, **kwargs)
         self._apply_request(request)
         self.perform()
         return self._build_resp()
@@ -114,16 +116,34 @@ class Curl(pycurl.Curl):
         if proxies:
             self._setup_proxy(url, proxies)
 
+    def _apply_method(self, method: Optional[str], has_body: bool):
+        if method not in self.METHODS:
+            raise InvalidMethod(f"invalid HTTP method {method}")
+        if method == "GET":
+            self.setopt(pycurl.HTTPGET, 1)
+        elif method == "POST":
+            self.setopt(pycurl.POST, 1)
+        elif method == "PUT":
+            self.setopt(pycurl.PUT, 1)
+        elif method == "HEAD":
+            # HEAD method, control by NOBODY=1
+            self.setopt(pycurl.NOBODY, 1)
+        else:
+            self.setopt(pycurl.UPLOAD, has_body)
+            self.setopt(pycurl.CUSTOMREQUEST, method)
+
     def _apply_request(self, request: PreparedRequest):
-        method = "GET" if request.method not in self.METHODS else request.method
-        self.setopt(pycurl.CUSTOMREQUEST, method)
+        # method = "GET" if request.method not in self.METHODS else request.method
+        # self.setopt(pycurl.CUSTOMREQUEST, method)
         self.setopt(pycurl.URL, request.url)
+        self._apply_method(request.method, not not request.body)
         self._prepare_headers(request.headers)
         # prepare body
         if request.body:
-            reader = BytesIO(request.body)
+            content = request.body.decode('utf-8')
+            reader = StringIO(content)
             self.setopt(pycurl.READFUNCTION, reader.read)
-            self.setopt(pycurl.INFILESIZE, len(request.body))
+            self.setopt(pycurl.INFILESIZE, len(content))
         self.resp.request = request
 
     def _prepare_headers(self, headers):

@@ -29,6 +29,9 @@ class MissingSchema(RequestException, ValueError):
 class InvalidSchema(RequestException, ValueError):
     """The URL scheme provided is either invalid or unsupported."""
 
+class InvalidMethod(RequestException, ValueError):
+    """The HTTP method provided is either invalid or unsupported."""
+
 
 class InvalidURL(RequestException, ValueError):
     """The URL provided was somehow invalid."""
