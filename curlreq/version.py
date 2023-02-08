@@ -3,7 +3,7 @@ import subprocess
 import sys
 
 VERSION = "0.1.0"
-CURL_REQ_VERSION = "CurlReq " + VERSION
+CURL_REQ_VERSION = "CurlReq/" + VERSION
 
 # Serialization format version. This is displayed nowhere, it just needs to be incremented by one
 # for each change in the file format.
