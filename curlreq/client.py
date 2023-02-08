@@ -164,3 +164,15 @@ class Client:
                 "http": proxy_url, "https": proxy_url
             }
         return proxies
+
+    def get(self, url, **kwargs):
+        """do a GET request"""
+        return self.request("GET", url, **kwargs)
+
+    def post(self, url, **kwargs):
+        """do a POST request"""
+        return self.request("POST", url, **kwargs)
+
+    def put(self, url, **kwargs):
+        """do a PUT request"""
+        return self.request("PUT", url, **kwargs)
