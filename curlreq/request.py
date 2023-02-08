@@ -392,8 +392,11 @@ class Request:
         :param method: request method, default GET
         :param headers: request headers
         :param cookies: cookies
-        :param proxies: proxies
-        :param kwargs: other parameter
+        :param auth: http auth
+        :param data: auth
+        :param json: json body
+        :param params: query parameters
+        :param files: post files
         """
         self.url = url
         self.method = "GET" if method is None else method.upper()
