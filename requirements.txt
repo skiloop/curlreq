@@ -1,2 +1,2 @@
-pycurl>=7.30.0
-urllib3>=1.25.2
+pycurl>=7.45.0
+urllib3>=1.21
