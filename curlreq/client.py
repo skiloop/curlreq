@@ -8,7 +8,7 @@ from urllib.parse import urlparse
 
 import pycurl
 
-from exceptions import InvalidMethod
+from .exceptions import InvalidMethod
 
 __HTTP_VERSION = {
     "http1.1": pycurl.CURL_HTTP_VERSION_1_1,
@@ -28,20 +28,22 @@ class Curl(pycurl.Curl):
     METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD", "TRACE"]
 
     def __init__(self, after_reset: callable = None):
-        super(Curl, self).__init__()
+        super().__init__()
         self.resp = None
         self._buffer = BytesIO()
         self._after_reset = after_reset
 
     def set_option(self, *args):
+        """set curl option"""
         self.setopt(*args)
 
     def reset(self):
-        super(Curl, self).reset()
+        """reset state"""
+        super().reset()
         self.resp = Response()
 
-        def header_callback(x):
-            self.resp.hdr += x.decode("ascii")
+        def header_callback(data):
+            self.resp.hdr += data.decode("ascii")
 
         self.setopt(pycurl.VERBOSE, 0)
         self.setopt(pycurl.HEADERFUNCTION, header_callback)
@@ -136,7 +138,7 @@ class Curl(pycurl.Curl):
         # method = "GET" if request.method not in self.METHODS else request.method
         # self.setopt(pycurl.CUSTOMREQUEST, method)
         self.setopt(pycurl.URL, request.url)
-        self._apply_method(request.method, not not request.body)
+        self._apply_method(request.method, request.body is not None)
         self._prepare_headers(request.headers)
         # prepare body
         if request.body:
@@ -244,7 +246,6 @@ class Client:
         if cert is None:
             return
         # TODO: apply cert
-        pass
 
     def _set_ssl_verify(self, verify):
         if verify is None:
@@ -253,7 +254,6 @@ class Client:
             self.curl.set_option(pycurl.SSL_VERIFYPEER, verify)
             self.curl.set_option(pycurl.SSL_VERIFYHOST, verify)
         # TODO: apply when verify is string for ca bundle
-        pass
 
     def set_curl_options(self, options: List[CurlOption]):
         """
@@ -267,7 +267,8 @@ class Client:
     def request(self, method, url, **kwargs) -> Optional[Response]:
         """Constructs and sends a :class:`Request <Request>`.
 
-        :param method: method for the new :class:`Request` object: ``GET``, ``OPTIONS``, ``HEAD``, ``POST``, ``PUT``, ``PATCH``, or ``DELETE``.
+        :param method: method for the new :class:`Request` object: ``GET``,
+                        ``OPTIONS``, ``HEAD``, ``POST``, ``PUT``, ``PATCH``, or ``DELETE``.
         :param url: URL for the new :class:`Request` object.
         :param params: (optional) Dictionary, list of tuples or bytes to send
             in the query string for the :class:`Request`.
@@ -276,17 +277,19 @@ class Client:
         :param json: (optional) A JSON serializable Python object to send in the body of the :class:`Request`.
         :param headers: (optional) Dictionary of HTTP Headers to send with the :class:`Request`.
         :param cookies: (optional) Dict or CookieJar object to send with the :class:`Request`.
-        :param files: (optional) Dictionary of ``'name': file-like-objects`` (or ``{'name': file-tuple}``) for multipart encoding upload.
-            ``file-tuple`` can be a 2-tuple ``('filename', fileobj)``, 3-tuple ``('filename', fileobj, 'content_type')``
-            or a 4-tuple ``('filename', fileobj, 'content_type', custom_headers)``, where ``'content-type'`` is a string
-            defining the content type of the given file and ``custom_headers`` a dict-like object containing additional headers
-            to add for the file.
+        :param files: (optional) Dictionary of ``'name': file-like-objects`` (or ``{'name': file-tuple}``) for
+                multipart encoding upload. ``file-tuple`` can be a 2-tuple ``('filename', fileobj)``,
+                3-tuple ``('filename', fileobj, 'content_type')`` or a 4-tuple ``('filename', fileobj,
+                'content_type', custom_headers)``, where ``'content-type'`` is a string
+                defining the content type of the given file and ``custom_headers`` a dict-like object
+                containing additional headers to add for the file.
         :param auth: (optional) Auth tuple to enable Basic/Digest/Custom HTTP Auth.
         :param timeout: (optional) How many seconds to wait for the server to send data
             before giving up, as a float, or a :ref:`(connect timeout, read
             timeout) <timeouts>` tuple.
         :type timeout: float or tuple
-        :param allow_redirects: (optional) Boolean. Enable/disable GET/OPTIONS/POST/PUT/PATCH/DELETE/HEAD redirection. Defaults to ``True``.
+        :param allow_redirects: (optional) Boolean. Enable/disable GET/OPTIONS/POST/PUT/PATCH/DELETE/HEAD
+                                redirection. Defaults to ``True``.
         :type allow_redirects: bool
         :param proxies: (optional) Dictionary mapping protocol to the URL of the proxy.
         :param verify: (optional) Either a boolean, in which case it controls whether we verify
@@ -296,7 +299,6 @@ class Client:
         :param cert: (optional) if String, path to ssl client cert file (.pem). If Tuple, ('cert', 'key') pair.
         :return: :class:`Response <Response>` object
         :rtype: curlreq.Response
-
 
         """
         memo = {}
