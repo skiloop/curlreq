@@ -1,4 +1,3 @@
-import logging
 import unittest
 from copy import deepcopy
 
@@ -54,13 +53,12 @@ def check_dict(dst: dict, src: dict):
 class CurlTests(unittest.TestCase):
     def setUp(self) -> None:
         self.curl = Curl()
-        self.curl.setopt(pycurl.TIMEOUT, 20)
         self.test_http_url = "http://httpbin.org/anything"
         self.test_https_url = "https://httpbin.org/anything"
         self.user_agent = version()
         self.have_body = ["PUT", "PATCH", "POST", "DELETE"]
         self.dict_body = {"abc": "hello", "name": "你好", "go": True}
-        self.options = {"timeout": 20}
+        self.options = {"timeout": 30}
 
     def testUrl(self):
         resp = self.curl.do_req(Request(self.test_http_url + "?name=你好").prepare())

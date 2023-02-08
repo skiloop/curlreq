@@ -1,7 +1,8 @@
+from .client import Client
+from .curl import Curl, CurlOption, SSLOptions
 from .request import Request
 from .response import Response
 from .version import version
-from .client import Curl, Client, CurlOption, SSLOptions
 
 __all__ = [
     "Client",
