@@ -6,6 +6,7 @@ import re
 from json import JSONDecodeError
 from typing import Optional
 
+from .exceptions import InvalidHeader
 from .request import Request
 
 
@@ -60,3 +61,22 @@ class Response:
             except (ValueError, JSONDecodeError):
                 self._json = None
         return self._json
+
+    @property
+    def headers(self) -> dict:
+        """the effective headers"""
+        if self._headers is None:
+            self._headers = self._parse_headers()
+        return self._headers
+
+    def _parse_headers(self) -> dict:
+        hds = self.hdr.strip('\r\n').split("\r\n\r\n")
+        headers = {}
+        if len(hds) > 0:
+            hdps = hds[-1].split("\r\n")
+            for hd in hdps[1:]:
+                parts = hd.split(': ', 1)
+                if len(parts) != 2:
+                    raise InvalidHeader(f"invalid header item: {hd}")
+                headers[parts[0]] = parts[1:]
+        return headers
