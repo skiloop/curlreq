@@ -128,10 +128,10 @@ class Curl(pycurl.Curl):
 
     def _prepare_headers(self, headers):
         "prepare headers"
-        if headers is None or len(headers) == 0:
-            headers = {
-                "User-Agent": version()
-            }
+        if headers is None:
+            headers = {}
+        if 'User-Agent' not in headers and 'user-agent' not in headers:
+            headers['User-Agent'] = version()
         self.setopt(pycurl.HTTPHEADER, list(f"{key}: {val}" for key, val in headers.items()))
 
     def _build_resp(self):
