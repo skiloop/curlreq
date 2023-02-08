@@ -1,7 +1,7 @@
 """
 HTTP client
 """
-
+import warnings
 from typing import Optional, List, Union
 from urllib.parse import urlparse
 
@@ -12,12 +12,25 @@ from .request import Request
 from .response import Response
 from .version import version
 
-__HTTP_VERSION = {
+_HTTP_VERSION = {
     "http1.1": pycurl.CURL_HTTP_VERSION_1_1,
 }
-for name, val in [("http2", "CURL_HTTP_VERSION_2"), ("http3", "CURL_HTTP_VERSION_3")]:
-    if hasattr(pycurl, val) and name not in __HTTP_VERSION:
-        __HTTP_VERSION[name] = getattr(pycurl, val)
+__VERSION_INIT__ = False
+
+
+def _init_():
+    for name, val in [("http2", "CURL_HTTP_VERSION_2"), ("http3", "CURL_HTTP_VERSION_3")]:
+        if hasattr(pycurl, val) and name not in _HTTP_VERSION:
+            _HTTP_VERSION[name] = getattr(pycurl, val)
+    __VERSION_INIT__ = True
+
+
+def check_if_support_http_version(ver: str):
+    return ver in _HTTP_VERSION
+
+
+def get_supported_http_versions():
+    return list(_HTTP_VERSION.keys())
 
 
 class Client:
@@ -64,7 +77,13 @@ class Client:
         if http_version is None:
             http_version = "http1.1"
         http_version = http_version.strip().lower()
-        ver_num = __HTTP_VERSION.get(http_version, pycurl.CURL_HTTP_VERSION_1_1)
+        ver_num = _HTTP_VERSION.get(http_version)
+        if ver_num is None:
+            ver_num = pycurl.CURL_HTTP_VERSION_1_1
+            warnings.warn(
+                f'the version of libcurl does to support for {http_version}, '
+                f'HTTP 1.0 will be used instead',
+            )
         self.curl.set_option(pycurl.HTTP_VERSION, ver_num)
 
     def _set_cert(self, cert):
@@ -131,7 +150,10 @@ class Client:
             memo[key] = kwargs.pop(key, None)
         req = Request(url, method, **memo)
         kwargs["proxies"] = self.prepare_proxies(kwargs.get('proxies'))
-        return self.curl.do_req(req.prepare(), **kwargs)
+        preq = req.prepare()
+        if 'User-Agent' not in preq.headers and 'user-agent' not in preq.headers:
+            preq.headers['User-Agent'] = self._user_agent
+        return self.curl.do_req(preq, **kwargs)
 
     @staticmethod
     def prepare_proxies(proxies: Union[str, dict, None]) -> Optional[dict]:
