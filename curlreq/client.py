@@ -25,6 +25,9 @@ def _init_():
     __VERSION_INIT__ = True
 
 
+_init_()
+
+
 def check_if_support_http_version(ver: str):
     return ver in _HTTP_VERSION
 
