@@ -1,8 +1,8 @@
 import io
 import os
 import re
-import warnings
 from urllib.parse import quote, unquote, urlparse
+
 from .exceptions import InvalidURL, InvalidHeader
 
 # The unreserved URI characters (RFC 3986)

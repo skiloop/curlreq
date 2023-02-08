@@ -1,15 +1,14 @@
 #
 # HTTP request
 #
+import json as complexjson
 from base64 import b64encode
-from copy import deepcopy
 from io import UnsupportedOperation
-from typing import Optional, Mapping
-from urllib.parse import urlparse, unquote, quote, urlunparse
+from typing import Mapping
+from urllib.parse import quote, urlunparse
 
 from urllib3.exceptions import LocationParseError
 from urllib3.util import parse_url
-import json as complexjson
 
 from .compat import to_native_string, unicode_is_ascii, encode_params, basestring, builtin_str, encode_files
 from .exceptions import InvalidURL, MissingSchema, InvalidJSONError, UnsupportedCookiesType
