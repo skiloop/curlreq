@@ -2,12 +2,12 @@
 HTTP client
 """
 import warnings
-from typing import Optional, List, Union
+from typing import Optional, Union
 from urllib.parse import urlparse
 
 import pycurl
 
-from .curl import Curl, CurlOption
+from .curl import Curl
 from .request import Request
 from .response import Response
 from .version import version
@@ -62,9 +62,12 @@ class Client:
         self._set_cert(kwargs.get('cert'))
         self._set_ssl_verify(kwargs.get('verify'))
         self._set_cookie_share(kwargs.get('cookie_share'))
+        # additional curl options
+        self.curl_opts = []
 
     def _after_reset(self, curl: Curl):
-        pass
+        for opt in self.curl_opts:
+            opt.apply(curl)
 
     def _set_cookie_share(self, cookie_share):
         if cookie_share is None or not cookie_share:
@@ -101,15 +104,6 @@ class Client:
             self.curl.set_option(pycurl.SSL_VERIFYPEER, verify)
             self.curl.set_option(pycurl.SSL_VERIFYHOST, verify)
         # TODO: apply when verify is string for ca bundle
-
-    def set_curl_options(self, options: List[CurlOption]):
-        """
-        apply additional curl option
-        :param options: list of CurlOption
-        :return: None
-        """
-        for opt in options:
-            opt.apply(self.curl)
 
     def request(self, method, url, **kwargs) -> Optional[Response]:
         """Constructs and sends a :class:`Request <Request>`.
