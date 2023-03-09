@@ -1,2 +1,8 @@
 build
 .pytest_cache
+*.log
+*.c
+upload
+**.egg-info/**
+dist
+upload.dSYM
