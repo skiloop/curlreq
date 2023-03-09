@@ -48,7 +48,7 @@ def _basic_auth_str(username, password):
 class AuthBase:
     """Base class that all auth implementations derive from"""
 
-    def __call__(self, r):
+    def __call__(self, req):
         raise NotImplementedError("Auth hooks must be callable.")
 
 
@@ -135,13 +135,14 @@ class PreparedRequest:
         return f"<PreparedRequest [{self.method}]>"
 
     def copy(self):
-        p = PreparedRequest()
-        p.method = self.method
-        p.url = self.url
-        p.headers = self.headers.copy() if self.headers is not None else None
-        p.body = self.body
-        p._body_position = self._body_position
-        return p
+        """copy object"""
+        preq = PreparedRequest()
+        preq.method = self.method
+        preq.url = self.url
+        preq.headers = self.headers.copy() if self.headers is not None else None
+        preq.body = self.body
+        preq._body_position = self._body_position
+        return preq
 
     def prepare_method(self, method):
         """Prepares the given HTTP method."""
@@ -155,8 +156,8 @@ class PreparedRequest:
 
         try:
             host = idna.encode(host, uts46=True).decode("utf-8")
-        except idna.IDNAError:
-            raise UnicodeError
+        except idna.IDNAError as exc:
+            raise UnicodeError(exc)
         return host
 
     def prepare_url(self, url, params):
@@ -261,8 +262,8 @@ class PreparedRequest:
 
             try:
                 body = complexjson.dumps(json, allow_nan=False)
-            except ValueError as ve:
-                raise InvalidJSONError(ve, request=self)
+            except ValueError as exc:
+                raise InvalidJSONError(exc, request=self)
 
             if not isinstance(body, bytes):
                 body = body.encode("utf-8")
@@ -354,10 +355,10 @@ class PreparedRequest:
                 auth = HTTPBasicAuth(*auth)
 
             # Allow auth to make its changes.
-            r = auth(self)
+            res = auth(self)
 
             # Update self to reflect the auth changes.
-            self.__dict__.update(r.__dict__)
+            self.__dict__.update(res.__dict__)
 
             # Recompute Content-Length
             self.prepare_content_length(self.body)

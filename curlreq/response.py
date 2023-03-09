@@ -34,6 +34,7 @@ class Response:
         return self._text
 
     def parse_encoding(self):
+        """parse content encoding"""
         if re.search(r'Content-Type:.*charset=utf-8', self.hdr, re.M | re.I):
             self.encoding = 'utf-8'
         elif re.search(r'Content-Type.*(gbk|gb2312)', self.hdr, re.M | re.I):
@@ -74,9 +75,9 @@ class Response:
         headers = {}
         if len(hds) > 0:
             hdps = hds[-1].split("\r\n")
-            for hd in hdps[1:]:
-                parts = hd.split(': ', 1)
+            for header in hdps[1:]:
+                parts = header.split(': ', 1)
                 if len(parts) != 2:
-                    raise InvalidHeader(f"invalid header item: {hd}")
+                    raise InvalidHeader(f"invalid header item: {header}")
                 headers[parts[0]] = parts[1:]
         return headers

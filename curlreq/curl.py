@@ -157,7 +157,6 @@ class Curl(pycurl.Curl):
         self.resp.parse_encoding()
         return self.resp
 
-
 class CurlOption:
     """
     abstract curl option

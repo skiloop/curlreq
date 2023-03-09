@@ -52,6 +52,7 @@ def guess_filename(obj):
 
 
 def to_key_val_list(value):
+    """convert value to key-value tuples"""
     if value is None:
         return None
 
@@ -132,6 +133,7 @@ def encode_multipart_formdata(fields, boundary=None):
 
 
 def encode_files(files, data):
+    """encode files"""
     new_fields = []
     fields = to_key_val_list(data or {})
     files = to_key_val_list(files or {})
