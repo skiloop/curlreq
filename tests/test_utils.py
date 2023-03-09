@@ -9,7 +9,7 @@ def test_with_prepared_request(case, curl: Curl, req: PreparedRequest, method, *
     if resp.status_code == 405:
         return resp
     case.assertTrue(resp.status_code in [200, 204],
-                    f"[{method}] status code failed: expected: 200, but go {resp.status_code}")
+                    f"[{method}] status code failed: expected: 200, but got {resp.status_code}")
     if resp.status_code == 204:
         return resp
     if method not in ["GET", "TRACE"] and method not in METHODS_WITH_BODY:

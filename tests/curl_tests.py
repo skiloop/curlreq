@@ -5,7 +5,7 @@ import pycurl
 from proxy import proxy
 
 from curlreq import Curl, Request, version
-from test_utils import test_request
+from test_utils import test_request, check_dict
 
 
 class CurlTests(unittest.TestCase):
