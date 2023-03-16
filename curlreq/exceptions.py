@@ -29,6 +29,7 @@ class MissingSchema(RequestException, ValueError):
 class InvalidSchema(RequestException, ValueError):
     """The URL scheme provided is either invalid or unsupported."""
 
+
 class InvalidMethod(RequestException, ValueError):
     """The HTTP method provided is either invalid or unsupported."""
 
@@ -43,6 +44,10 @@ class InvalidHeader(RequestException, ValueError):
 
 class InvalidProxyURL(InvalidURL):
     """The proxy URL provided is invalid."""
+
+
+class UnsupportedFeatures(RequestException, ValueError):
+    """unsupported features"""
 
 
 class UnsupportedCookiesType(RequestException, ValueError):

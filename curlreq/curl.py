@@ -9,7 +9,7 @@ from typing import Optional
 
 import pycurl
 
-from .exceptions import InvalidMethod
+from .exceptions import InvalidMethod, UnsupportedFeatures
 from .request import PreparedRequest
 from .response import Response
 from .version import version
@@ -192,3 +192,61 @@ class SSLOptions(CurlOption):
             curl.set_option(pycurl.SSL_EC_CURVES, self.ssl_ec_curves)
         if self.ciphers != "":
             curl.set_option(pycurl.SSL_CIPHER_LIST, self.ciphers)
+
+
+class JA3Option(CurlOption):
+    """enable CurlReq To modify JA3 fingerprinting"""
+
+    def __init__(self, **kwargs):
+        self.ciphers = kwargs.get("ciphers", "")
+        self.alpn = 0 if not kwargs.get("alpn") else 1
+        self.alps = 0 if not kwargs.get("alps") else 1
+        self.grease = 0 if not kwargs.get("grease") else 1
+        self.ocsp_stapling = 0 if not kwargs.get("ocsp_stapling") else 1
+        self.sign_cert_ts = 0 if not kwargs.get("sign_cert_ts") else 1
+        self.no_session_ticket = 0 if not kwargs.get("no_session_ticket") else 1
+        self.permute_extensions = 0 if not kwargs.get("permute_extensions") else 1
+        self.cert_compression = kwargs.get("cert_compression")
+
+    def apply(self, curl: Curl):
+        for key in [
+            "SSL_ENABLE_ALPS",
+            "SSL_ENABLE_GREASE",
+            "SSL_OCSP_STAPLING",
+            "SSL_PERMUTE_EXTENSIONS",
+            "SSL_NO_SESS_TICKET",
+            "SSL_SIG_CERT_TS",
+            "SSL_CERT_COMPRESSION"
+        ]:
+            if not hasattr(pycurl, key):
+                raise UnsupportedFeatures("CURL do not support to modify JA3 fingerprint")
+        curl.set_option(curl.SSL_ENABLE_ALPN, self.alpn)
+        curl.set_option(curl.SSL_ENABLE_ALPS, self.alps)
+        curl.set_option(curl.SSL_ENABLE_GREASE, self.grease)
+        curl.set_option(curl.SSL_OCSP_STAPLING, self.ocsp_stapling)
+        curl.set_option(curl.SSL_SIG_CERT_TS, self.sign_cert_ts)
+        curl.set_option(curl.SSL_PERMUTE_EXTENSIONS, self.permute_extensions)
+        curl.set_option(curl.SSL_NO_SESS_TICKET, self.no_session_ticket)
+        if self.cert_compression:
+            curl.set_option(curl.SSL_CERT_COMPRESSION, "brotli")
+        if self.ciphers:
+            curl.set_option(curl.SSL_CIPHER_LIST, self.ciphers)
+
+
+class HTTP2FPOption(CurlOption):
+    """enable CurlReq To modify HTTP2 fingerprinting"""
+
+    def __init__(self, h2fp: str):
+        """
+
+        :param h2fp: http2 fingerprinting in format of
+        [SETTINGS]|WINDOW_UPDATE|PRIORITY|Pseudo-Header-Order|HEADERS_FRAME|WINDOW_UPDATE
+        for example
+        "1:189924,2:0,3:13412,4:65535,6:262144|12263105|0|m,p,s,a"
+        """
+        self.h2fp = h2fp
+
+    def apply(self, curl: Curl):
+        if not hasattr(pycurl, "HTTP2_FINGERPRINT"):
+            raise UnsupportedFeatures("CURL does NOT support to modify HTTP2 fingerprint")
+        curl.set_option(curl.HTTP2_FINGERPRINT, self.h2fp)
