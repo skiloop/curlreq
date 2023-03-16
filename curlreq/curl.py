@@ -3,6 +3,7 @@
 #
 
 import abc
+import re
 from io import BytesIO, StringIO
 from typing import Optional
 
@@ -156,6 +157,12 @@ class Curl(pycurl.Curl):
         self.resp.content = self._buffer.getvalue()
         self.resp.parse_encoding()
         return self.resp
+
+    @staticmethod
+    def support_http3():
+        """check if curl support HTTP3"""
+        return re.search(r'nghttp3|quiche|msh3', pycurl.version) is not None
+
 
 class CurlOption:
     """

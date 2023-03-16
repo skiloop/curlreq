@@ -64,7 +64,7 @@ class CurlTests(unittest.TestCase):
         test_request(self, self.curl, "POST", self.test_https_url, self.dict_body, **self.options)
 
     def testHTTP3(self):
-        if not hasattr(pycurl, "CURL_HTTP_VERSION_3"):
+        if not Curl.support_http3():
             return
         self.curl.setopt(pycurl.HTTP_VERSION, pycurl.CURL_HTTP_VERSION_3)
         test_request(self, self.curl, "GET", self.test_https_url, self.dict_body, **self.options)
