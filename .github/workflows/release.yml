@@ -37,7 +37,7 @@ jobs:
 
   release:
     needs: test
-    if: ${{ needs.result == "success" }}
+    if: ${{ needs.test.result == "success" }}
     runs-on: ubuntu-latest
 
     permissions:
