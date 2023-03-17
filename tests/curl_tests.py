@@ -47,7 +47,10 @@ class CurlTests(unittest.TestCase):
             res = name in supported_versions
             self.assertEqual(
                 res, expected,
-                f"HTTP supported version checking failed for {name}, expected {expected} but got {res}")
+                f"pycurl.version: {pycurl.version}, "
+                f"HTTP supported version checking failed for {name},"
+                f" expected {expected} but got {res}"
+            )
 
     def testUrl(self):
         resp = self.curl.do_req(Request(self.test_http_url + "?name=你好").prepare())
