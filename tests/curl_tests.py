@@ -20,7 +20,7 @@ def checkSupportOption(curl: Curl, option: int, value):
 
 
 def checkCurlSupportVersion(curl: Curl, name: str):
-    return not hasattr(pycurl, name) or \
+    return hasattr(pycurl, name) and \
            checkSupportOption(curl, pycurl.HTTP_VERSION, getattr(pycurl, name))
 
 
@@ -38,7 +38,7 @@ class CurlTests(unittest.TestCase):
         versions = {
             "http1.0": "CURL_HTTP_VERSION_1_0",
             "http1.1": "CURL_HTTP_VERSION_1_1",
-            "http2": "CURL_HTTP_VERSION_1",
+            "http2": "CURL_HTTP_VERSION_2",
             "http3": "CURL_HTTP_VERSION_3",
         }
         supported_versions = Curl.get_supported_http_versions()
