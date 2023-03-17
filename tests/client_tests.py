@@ -4,7 +4,7 @@ from copy import deepcopy
 import pycurl
 from proxy import Proxy
 
-from curlreq import Client, get_supported_http_versions, SSLOptions
+from curlreq import Client, SSLOptions, Curl
 from test_utils import test_request_with_client
 
 
@@ -29,7 +29,7 @@ class ClientTests(unittest.TestCase):
             test_request_with_client(self, self.cli, "GET", self.test_https_url, **kwargs)
 
     def testHTTPVersion(self):
-        for ver in get_supported_http_versions():
+        for ver in Curl.get_supported_http_versions():
             cli = Client(http_version=ver)
             test_request_with_client(self, cli, "GET", self.test_https_url, **self.options)
 

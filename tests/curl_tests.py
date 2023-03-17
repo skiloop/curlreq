@@ -8,6 +8,22 @@ from curlreq import Curl, Request, version
 from test_utils import test_request, check_dict
 
 
+def checkSupportOption(curl: Curl, option: int, value):
+    try:
+        curl.setopt(option, value)
+    except (TypeError, pycurl.error) as err:
+        return not (len(err.args) and (
+                err.args[0] == 'invalid arguments to setopt' or
+                err.args[0] == 1 and err.args[1] == ''
+        ))
+    return True
+
+
+def checkCurlSupportVersion(curl: Curl, name: str):
+    return not hasattr(pycurl, name) or \
+           checkSupportOption(curl, pycurl.HTTP_VERSION, getattr(pycurl, name))
+
+
 class CurlTests(unittest.TestCase):
     def setUp(self) -> None:
         self.curl = Curl()
@@ -17,6 +33,21 @@ class CurlTests(unittest.TestCase):
         self.have_body = ["PUT", "PATCH", "POST", "DELETE"]
         self.dict_body = {"abc": "hello", "name": "你好", "go": True}
         self.options = {"timeout": 30}
+
+    def testVersion(self):
+        versions = {
+            "http1.0": "CURL_HTTP_VERSION_1_0",
+            "http1.1": "CURL_HTTP_VERSION_1_1",
+            "http2": "CURL_HTTP_VERSION_1",
+            "http3": "CURL_HTTP_VERSION_3",
+        }
+        supported_versions = Curl.get_supported_http_versions()
+        for name, value in versions.items():
+            expected = checkCurlSupportVersion(self.curl, value)
+            res = name in supported_versions
+            self.assertEqual(
+                res, expected,
+                f"HTTP supported version checking failed for {name}, expected {expected} but got {res}")
 
     def testUrl(self):
         resp = self.curl.do_req(Request(self.test_http_url + "?name=你好").prepare())
@@ -57,7 +88,7 @@ class CurlTests(unittest.TestCase):
         test_request(self, self.curl, "POST", self.test_https_url, self.dict_body, **self.options)
 
     def testHTTP2(self):
-        if not hasattr(pycurl, "CURL_HTTP_VERSION_2"):
+        if "http2" not in Curl.get_supported_http_versions():
             return
         self.curl.setopt(pycurl.HTTP_VERSION, pycurl.CURL_HTTP_VERSION_2)
         test_request(self, self.curl, "GET", self.test_https_url, self.dict_body, **self.options)
