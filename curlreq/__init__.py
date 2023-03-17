@@ -1,4 +1,4 @@
-from .client import Client, get_supported_http_versions, check_if_support_http_version
+from .client import Client
 from .curl import Curl, CurlOption, SSLOptions, JA3Option, HTTP2FPOption
 from .request import Request, PreparedRequest
 from .response import Response
@@ -14,7 +14,5 @@ __all__ = [
     "Request",
     "Response",
     "PreparedRequest",
-    "check_if_support_http_version",
-    "get_supported_http_versions",
     "version"
 ]

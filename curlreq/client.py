@@ -1,7 +1,6 @@
 """
 HTTP client
 """
-import warnings
 from typing import Optional, Union
 from urllib.parse import urlparse
 
@@ -11,29 +10,6 @@ from .curl import Curl
 from .request import Request
 from .response import Response
 from .version import version
-
-_HTTP_VERSION = {
-    "http1.1": pycurl.CURL_HTTP_VERSION_1_1,
-}
-
-
-def _init_():
-    for name, val in [("http2", "CURL_HTTP_VERSION_2"), ("http3", "CURL_HTTP_VERSION_3")]:
-        if hasattr(pycurl, val) and name not in _HTTP_VERSION:
-            _HTTP_VERSION[name] = getattr(pycurl, val)
-
-
-_init_()
-
-
-def check_if_support_http_version(ver: str):
-    """check if version is supported"""
-    return ver in _HTTP_VERSION
-
-
-def get_supported_http_versions():
-    """get supported version"""
-    return list(_HTTP_VERSION.keys())
 
 
 class Client:
@@ -58,7 +34,7 @@ class Client:
         self.curl = Curl(self._after_reset)
         self._user_agent = kwargs.get("user_agent", version())
         self._cookie_share = None
-        self._set_http_version(kwargs.get("http_version"))
+        self.curl.set_http_version(kwargs.get("http_version"))
         self._set_cert(kwargs.get('cert'))
         self._set_ssl_verify(kwargs.get('verify'))
         self._set_cookie_share(kwargs.get('cookie_share'))
@@ -78,19 +54,6 @@ class Client:
         self._cookie_share = pycurl.CurlShare()
         self._cookie_share.setopt(pycurl.SH_SHARE, pycurl.LOCK_DATA_DNS)
         self._cookie_share.setopt(pycurl.SH_SHARE, pycurl.LOCK_DATA_COOKIE)
-
-    def _set_http_version(self, http_version: Optional[str]):
-        if http_version is None:
-            http_version = "http1.1"
-        http_version = http_version.strip().lower()
-        ver_num = _HTTP_VERSION.get(http_version)
-        if ver_num is None:
-            ver_num = pycurl.CURL_HTTP_VERSION_1_1
-            warnings.warn(
-                f'the version of libcurl does to support for {http_version}, '
-                f'HTTP 1.0 will be used instead',
-            )
-        self.curl.set_option(pycurl.HTTP_VERSION, ver_num)
 
     def _set_cert(self, cert):
         if cert is None:

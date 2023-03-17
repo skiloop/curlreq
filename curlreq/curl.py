@@ -4,6 +4,7 @@
 
 import abc
 import re
+import warnings
 from io import BytesIO, StringIO
 from typing import Optional
 
@@ -13,6 +14,31 @@ from .exceptions import InvalidMethod, UnsupportedFeatures
 from .request import PreparedRequest
 from .response import Response
 from .version import version
+
+_HTTP_VERSION = {
+    "http1.0": pycurl.CURL_HTTP_VERSION_1_0,
+    "http1.1": pycurl.CURL_HTTP_VERSION_1_1,
+}
+
+
+def _curl_support_http2():
+    """check if curl support HTTP2"""
+    return re.search(r'nghttp2/\d+\.\d+\.\d+', pycurl.version) is not None
+
+
+def _curl_support_http3():
+    """check if curl support HTTP3"""
+    return re.search(r'nghttp3|quiche|msh3', pycurl.version) is not None
+
+
+def _init_():
+    if _curl_support_http2():
+        _HTTP_VERSION["http2"] = pycurl.CURL_HTTP_VERSION_2
+    if _curl_support_http3():
+        _HTTP_VERSION["http3"] = pycurl.CURL_HTTP_VERSION_3
+
+
+_init_()
 
 
 class Curl(pycurl.Curl):
@@ -158,10 +184,39 @@ class Curl(pycurl.Curl):
         self.resp.parse_encoding()
         return self.resp
 
+    def set_http_version(self, http_version: Optional[str]):
+        """
+        set http version, if version not supported, HTTP1.1 will be used instead
+        :param http_version: HTTP version, options are "http1.0",
+            "http1.1", "http2", "http3"
+        :return:
+        """
+        if http_version is None:
+            http_version = "http1.1"
+        http_version = http_version.strip().lower()
+        ver_num = _HTTP_VERSION.get(http_version)
+        if ver_num is None:
+            ver_num = pycurl.CURL_HTTP_VERSION_1_1
+            warnings.warn(
+                f'the version of libcurl does not support {http_version}, '
+                f'HTTP 1.1 will be used instead',
+            )
+        self.setopt(pycurl.HTTP_VERSION, ver_num)
+
     @staticmethod
     def support_http3():
         """check if curl support HTTP3"""
-        return re.search(r'nghttp3|quiche|msh3', pycurl.version) is not None
+        return _curl_support_http3()
+
+    @staticmethod
+    def check_if_support_http_version(ver: str):
+        """check if version is supported"""
+        return ver in _HTTP_VERSION
+
+    @staticmethod
+    def get_supported_http_versions():
+        """get supported version"""
+        return list(_HTTP_VERSION.keys())
 
 
 class CurlOption:
