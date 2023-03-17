@@ -30,9 +30,10 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install -r requirements-tests.txt
+          echo "PYTHONPATH=./tests/:$PYTHONPATH" >> $GITHUB_ENV
       - name: Tests
         run: |
-          python -m unittest discover -s tests -p '*_tests.py' -v
+          python -m unittest tests.curl_tests -v
 
   release:
     needs: test
