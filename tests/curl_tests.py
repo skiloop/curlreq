@@ -24,6 +24,12 @@ def checkCurlSupportVersion(curl: Curl, name: str):
            checkSupportOption(curl, pycurl.HTTP_VERSION, getattr(pycurl, name))
 
 
+def testWithProxy(self, options, version_int):
+    self.curl.setopt(pycurl.HTTP_VERSION, version_int)
+    test_request(self, self.curl, "GET", self.test_https_url, self.dict_body, **options)
+    test_request(self, self.curl, "POST", self.test_https_url, self.dict_body, **options)
+
+
 class CurlTests(unittest.TestCase):
     def setUp(self) -> None:
         self.curl = Curl()
@@ -105,12 +111,14 @@ class CurlTests(unittest.TestCase):
         test_request(self, self.curl, "POST", self.test_https_url, self.dict_body, **self.options)
 
     def testProxy(self):
+        options = deepcopy(self.options)
+        options["proxies"] = {"https": "http://localhost:8899"}
         with proxy.Proxy(["--log-level=CRITICAL", "--threadless"]):
-            self.curl.setopt(pycurl.HTTP_VERSION, pycurl.CURL_HTTP_VERSION_1_1)
-            options = deepcopy(self.options)
-            options["proxies"] = {"https": "http://localhost:8899"}
-            test_request(self, self.curl, "GET", self.test_https_url, self.dict_body, **options)
-            test_request(self, self.curl, "POST", self.test_https_url, self.dict_body, **options)
+            testWithProxy(self, options, pycurl.CURL_HTTP_VERSION_1_1)
+            if "http2" in Curl.get_supported_http_versions():
+                testWithProxy(self, options, pycurl.CURL_HTTP_VERSION_2)
+            if "http3" in Curl.get_supported_http_versions():
+                testWithProxy(self, options, pycurl.CURL_HTTP_VERSION_3)
 
     def testPostFormat(self):
         self.curl.setopt(pycurl.HTTP_VERSION, pycurl.CURL_HTTP_VERSION_1_1)
