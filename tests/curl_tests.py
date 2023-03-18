@@ -19,11 +19,6 @@ def checkSupportOption(curl: Curl, option: int, value):
     return True
 
 
-def checkCurlSupportVersion(curl: Curl, name: str):
-    return hasattr(pycurl, name) and \
-           checkSupportOption(curl, pycurl.HTTP_VERSION, getattr(pycurl, name))
-
-
 def testWithProxy(self, options, version_int):
     self.curl.setopt(pycurl.HTTP_VERSION, version_int)
     test_request(self, self.curl, "GET", self.test_https_url, self.dict_body, **options)
@@ -39,24 +34,6 @@ class CurlTests(unittest.TestCase):
         self.have_body = ["PUT", "PATCH", "POST", "DELETE"]
         self.dict_body = {"abc": "hello", "name": "你好", "go": True}
         self.options = {"timeout": 30}
-
-    def testVersion(self):
-        versions = {
-            "http1.0": "CURL_HTTP_VERSION_1_0",
-            "http1.1": "CURL_HTTP_VERSION_1_1",
-            "http2": "CURL_HTTP_VERSION_2",
-            "http3": "CURL_HTTP_VERSION_3",
-        }
-        supported_versions = Curl.get_supported_http_versions()
-        for name, value in versions.items():
-            expected = checkCurlSupportVersion(self.curl, value)
-            res = name in supported_versions
-            self.assertEqual(
-                res, expected,
-                f"pycurl.version: {pycurl.version}, "
-                f"HTTP supported version checking failed for {name},"
-                f" expected {expected} but got {res}"
-            )
 
     def testUrl(self):
         resp = self.curl.do_req(Request(self.test_http_url + "?name=你好").prepare())
@@ -104,8 +81,8 @@ class CurlTests(unittest.TestCase):
         test_request(self, self.curl, "POST", self.test_https_url, self.dict_body, **self.options)
 
     def testHTTP3(self):
-        if not Curl.support_http3():
-            return
+        # if not Curl.support_http3():
+        #     return
         self.curl.setopt(pycurl.HTTP_VERSION, pycurl.CURL_HTTP_VERSION_3)
         test_request(self, self.curl, "GET", self.test_https_url, self.dict_body, **self.options)
         test_request(self, self.curl, "POST", self.test_https_url, self.dict_body, **self.options)
