@@ -33,7 +33,7 @@ class CurlTests(unittest.TestCase):
         self.user_agent = version()
         self.have_body = ["PUT", "PATCH", "POST", "DELETE"]
         self.dict_body = {"abc": "hello", "name": "你好", "go": True}
-        self.options = {"timeout": 30}
+        self.options = {"timeout": 60}
 
     def testUrl(self):
         resp = self.curl.do_req(Request(self.test_http_url + "?name=你好").prepare())
@@ -105,9 +105,10 @@ class CurlTests(unittest.TestCase):
 
     def testHeaders(self):
         self.curl.setopt(pycurl.HTTP_VERSION, pycurl.CURL_HTTP_VERSION_1_1)
-        headers = {"Acek": "jjsp", "Doit": "yes"}
-        resp = test_request(self, self.curl, "GET", self.test_https_url, None, headers=headers)
-        self.assertTrue(resp.json["headers"] and check_dict(headers, resp.json["headers"]),
+        option = deepcopy(self.options)
+        option['headers'] = {"Acek": "jjsp", "Doit": "yes"}
+        resp = test_request(self, self.curl, "GET", self.test_https_url, None, **option)
+        self.assertTrue(resp.json["headers"] and check_dict(option['headers'], resp.json["headers"]),
                         f"json body not setting right: {str(resp.json['headers'])}")
 
 

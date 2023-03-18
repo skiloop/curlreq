@@ -15,7 +15,7 @@ class ClientTests(unittest.TestCase):
         self.test_https_url = "https://httpbin.org/anything"
         self.have_body = ["PUT", "PATCH", "POST", "DELETE"]
         self.dict_body = {"abc": "hello", "name": "你好", "go": True}
-        self.options = {"timeout": 30}
+        self.options = {"timeout": 60}
 
     def testClient(self):
         kwargs = deepcopy(self.options)
@@ -38,7 +38,7 @@ class ClientTests(unittest.TestCase):
         options[0].ssl_version = pycurl.SSLVERSION_MAX_TLSv1_2
         self.cli.curl_opts = options
         try:
-            self.cli.get(self.test_https_url)
+            self.cli.get(self.test_https_url, timeout=self.options.get('timeout'))
         except pycurl.error as ev:
             self.fail(f"curl options failed to apply: {ev}")
 
