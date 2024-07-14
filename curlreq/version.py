@@ -1,3 +1,6 @@
+"""
+version definition
+"""
 import os
 import subprocess
 import sys
@@ -33,10 +36,11 @@ def get_dev_version() -> str:
             stderr=subprocess.STDOUT,
             cwd=here,
         )
+        # pylint: disable=unused-variable
         last_tag, tag_dist_str, commit = git_describe.decode().strip().rsplit("-", 2)
         commit = commit.lstrip("g")[:7]
         tag_dist = int(tag_dist_str)
-    except Exception:
+    except RuntimeError:
         pass
     else:
         # Add commit info for non-tagged releases

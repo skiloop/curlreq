@@ -1,3 +1,8 @@
+"""
+curlreq module
+define an easy to use HTTP client
+"""
+
 from .client import Client
 from .curl import Curl, CurlOption, SSLOptions, JA3Option, HTTP2FPOption
 from .request import Request, PreparedRequest

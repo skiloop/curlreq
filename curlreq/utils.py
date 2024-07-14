@@ -1,3 +1,6 @@
+"""
+utils
+"""
 import io
 import os
 import re
@@ -23,8 +26,8 @@ def unquote_unreserved(uri):
         if len(h) == 2 and h.isalnum():
             try:
                 c = chr(int(h, 16))
-            except ValueError:
-                raise InvalidURL(f"Invalid percent-escape sequence: '{h}'")
+            except ValueError as e:
+                raise InvalidURL(f"Invalid percent-escape sequence: '{h}'") from e
 
             if c in UNRESERVED_SET:
                 parts[i] = c + parts[i][2:]
@@ -35,7 +38,7 @@ def unquote_unreserved(uri):
     return "".join(parts)
 
 
-def requote_uri(uri):
+def re_quote_uri(uri):
     """Re-quote the given URI.
 
     This function passes the given URI through an unquote/quote cycle to
@@ -96,6 +99,9 @@ def check_header_validity(header):
 
 
 def super_len(o):
+    """
+    get length of object
+    """
     total_length = None
     current_position = 0
 

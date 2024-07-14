@@ -1,6 +1,6 @@
-#
-# http response class
-#
+"""
+http response class
+"""
 import json
 import re
 from json import JSONDecodeError

@@ -1,3 +1,6 @@
+"""
+Client Tests
+"""
 import unittest
 from copy import deepcopy
 
@@ -9,6 +12,9 @@ from test_utils import test_request_with_client
 
 
 class ClientTests(unittest.TestCase):
+    """
+    Client Tests
+    """
     def setUp(self) -> None:
         self.cli = Client()
         self.test_http_url = "http://httpbin.org/anything"

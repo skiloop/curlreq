@@ -56,9 +56,13 @@ class Client:
         self._cookie_share.setopt(pycurl.SH_SHARE, pycurl.LOCK_DATA_COOKIE)
 
     def _set_cert(self, cert):
+        """
+        set cert
+        """
         if cert is None:
             return
         # TODO: apply cert
+        return
 
     def _set_ssl_verify(self, verify):
         if verify is None:

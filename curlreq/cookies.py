@@ -1,3 +1,9 @@
+"""
+Cookies functions
+"""
+
+
+# pylint: disable=unused-argument
 def morsel_to_cookie(morsel):
     """Convert a Morsel object into a Cookie containing the one k/v pair."""
 
@@ -5,6 +11,7 @@ def morsel_to_cookie(morsel):
     return
 
 
+# pylint: disable=unused-argument
 def cookiejar_from_dict(cookie_dict, cookiejar=None, overwrite=True):
     """Returns a CookieJar from a key/value dictionary.
 

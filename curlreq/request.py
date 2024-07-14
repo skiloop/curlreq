@@ -1,6 +1,11 @@
-#
-# HTTP request
-#
+"""
+http request
+"""
+
+try:
+    import idna
+except ModuleNotFoundError:
+    idna = None
 import json as complexjson
 from base64 import b64encode
 from io import UnsupportedOperation
@@ -10,9 +15,10 @@ from urllib.parse import quote, urlunparse
 from urllib3.exceptions import LocationParseError
 from urllib3.util import parse_url
 
-from .compat import to_native_string, unicode_is_ascii, encode_params, basestring, builtin_str, encode_files
+from .compat import (to_native_string, unicode_is_ascii, encode_params,
+                     basestring, BuiltinString, encode_files)
 from .exceptions import InvalidURL, MissingSchema, InvalidJSONError, UnsupportedCookiesType
-from .utils import requote_uri, check_header_validity, super_len, get_auth_from_url
+from .utils import re_quote_uri, check_header_validity, super_len, get_auth_from_url
 
 
 def _basic_auth_str(username, password):
@@ -141,6 +147,7 @@ class PreparedRequest:
         preq.url = self.url
         preq.headers = self.headers.copy() if self.headers is not None else None
         preq.body = self.body
+        # pylint: disable=protected-access
         preq._body_position = self._body_position
         return preq
 
@@ -152,12 +159,12 @@ class PreparedRequest:
 
     @staticmethod
     def _get_idna_encoded_host(host):
-        import idna
-
+        if idna is None:
+            return host
         try:
             host = idna.encode(host, uts46=True).decode("utf-8")
         except idna.IDNAError as exc:
-            raise UnicodeError(exc)
+            raise UnicodeError(exc) from exc
         return host
 
     def prepare_url(self, url, params):
@@ -186,7 +193,7 @@ class PreparedRequest:
         try:
             scheme, auth, host, port, path, query, fragment = parse_url(url)
         except LocationParseError as e:
-            raise InvalidURL(*e.args)
+            raise InvalidURL(*e.args) from e
 
         if not scheme:
             raise MissingSchema(
@@ -204,8 +211,8 @@ class PreparedRequest:
         if not unicode_is_ascii(host):
             try:
                 host = self._get_idna_encoded_host(host)
-            except UnicodeError:
-                raise InvalidURL("URL has an invalid label.")
+            except UnicodeError as e:
+                raise InvalidURL("URL has an invalid label.") from e
         elif host.startswith(("*", ".")):
             raise InvalidURL("URL has an invalid label.")
 
@@ -231,7 +238,7 @@ class PreparedRequest:
             else:
                 query = enc_params
 
-        url = requote_uri(urlunparse([scheme, netloc, path, None, query, fragment]))
+        url = re_quote_uri(urlunparse([scheme, netloc, path, None, query, fragment]))
         self.url = url
 
     def prepare_headers(self, headers):
@@ -263,7 +270,7 @@ class PreparedRequest:
             try:
                 body = complexjson.dumps(json, allow_nan=False)
             except ValueError as exc:
-                raise InvalidJSONError(exc, request=self)
+                raise InvalidJSONError(exc, request=self) from exc
 
             if not isinstance(body, bytes):
                 body = body.encode("utf-8")
@@ -300,7 +307,7 @@ class PreparedRequest:
                 )
 
             if length:
-                self.headers["Content-Length"] = builtin_str(length)
+                self.headers["Content-Length"] = BuiltinString(length)
             else:
                 self.headers["Transfer-Encoding"] = "chunked"
         else:
@@ -332,7 +339,7 @@ class PreparedRequest:
             if length:
                 # If length exists, set it. Otherwise, we fallback
                 # to Transfer-Encoding: chunked.
-                self.headers["Content-Length"] = builtin_str(length)
+                self.headers["Content-Length"] = BuiltinString(length)
         elif (
                 self.method not in ("GET", "HEAD")
                 and self.headers.get("Content-Length") is None
@@ -342,11 +349,13 @@ class PreparedRequest:
             self.headers["Content-Length"] = "0"
 
     def prepare_auth(self, auth, url=""):
+        # pylint: disable=fixme
+        # TODO: is url really needed?
         """Prepares the given HTTP auth data."""
 
         # If no Auth is explicitly provided, extract it from the URL first.
         if auth is None:
-            url_auth = get_auth_from_url(self.url)
+            url_auth = get_auth_from_url(url or self.url)
             auth = url_auth if any(url_auth) else None
 
         if auth:

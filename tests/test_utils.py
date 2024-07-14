@@ -38,6 +38,9 @@ def test_request(case, curl: Curl, method, url, body, **kwargs) -> Response:
 
 
 def check_dict(dst: dict, src: dict) -> bool:
+    """
+    check if dict equals
+    """
     for key, val in dst.items():
         if val != src.get(key):
             return False

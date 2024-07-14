@@ -1,6 +1,6 @@
-#
-# Curl class
-#
+"""
+curl wrapper
+"""
 
 import abc
 import re
@@ -226,6 +226,9 @@ class CurlOption:
 
     @abc.abstractmethod
     def apply(self, curl: Curl):
+        """
+        operations apply to curl
+        """
         raise NotImplementedError('virtual function called')
 
 

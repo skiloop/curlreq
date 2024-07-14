@@ -10,7 +10,7 @@ from urllib.parse import urlencode
 
 from urllib3.fields import RequestField
 
-builtin_str = str
+BuiltinString = str
 basestring = (str, bytes)
 
 writer = codecs.lookup("utf-8")[3]
@@ -21,7 +21,7 @@ def to_native_string(string, encoding="ascii"):
     that string in the native string type, encoding and decoding where
     necessary. This assumes ASCII unless told otherwise.
     """
-    if isinstance(string, builtin_str):
+    if isinstance(string, BuiltinString):
         out = string
     else:
         out = string.decode(encoding)
@@ -49,7 +49,7 @@ def guess_filename(obj):
     name = getattr(obj, "name", None)
     if name and isinstance(name, basestring) and name[0] != "<" and name[-1] != ">":
         return os.path.basename(name)
-
+    return None
 
 def to_key_val_list(value):
     """convert value to key-value tuples"""
@@ -94,7 +94,7 @@ def iter_field_objects(fields):
             yield RequestField.from_tuples(*field)
 
 
-def encode_multipart_formdata(fields, boundary=None):
+def encode_multipart_form_data(fields, boundary=None):
     """
     Encode a dictionary of ``fields`` using the multipart/form-data MIME format.
 
@@ -110,7 +110,7 @@ def encode_multipart_formdata(fields, boundary=None):
         boundary = choose_boundary()
 
     for field in iter_field_objects(fields):
-        body.write("--{boundary}\r\n")
+        body.write(b"--{boundary}\r\n")
 
         writer(body).write(field.render_headers())
         data = field.data
@@ -125,7 +125,7 @@ def encode_multipart_formdata(fields, boundary=None):
 
         body.write(b"\r\n")
 
-    body.write(f"--{boundary}--\r\n")
+    body.write(f"--{boundary}--\r\n".encode())
 
     content_type = str(f"multipart/form-data; boundary={boundary}")
 
@@ -182,7 +182,7 @@ def encode_files(files, data):
         rf.make_multipart(content_type=ft)
         new_fields.append(rf)
 
-    return encode_multipart_formdata(new_fields)
+    return encode_multipart_form_data(new_fields)
 
 
 def encode_params(data):
@@ -195,9 +195,9 @@ def encode_params(data):
 
     if isinstance(data, (str, bytes)):
         return data
-    elif hasattr(data, "read"):
+    if hasattr(data, "read"):
         return data
-    elif hasattr(data, "__iter__"):
+    if hasattr(data, "__iter__"):
         result = []
         for k, vs in to_key_val_list(data):
             if isinstance(vs, basestring) or not hasattr(vs, "__iter__"):
@@ -211,5 +211,4 @@ def encode_params(data):
                         )
                     )
         return urlencode(result, doseq=True)
-    else:
-        return data
+    return data

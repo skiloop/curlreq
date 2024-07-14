@@ -108,8 +108,10 @@ class CurlTests(unittest.TestCase):
         option = deepcopy(self.options)
         option['headers'] = {"Acek": "jjsp", "Doit": "yes"}
         resp = test_request(self, self.curl, "GET", self.test_https_url, None, **option)
-        self.assertTrue(resp.json["headers"] and check_dict(option['headers'], resp.json["headers"]),
-                        f"json body not setting right: {str(resp.json['headers'])}")
+        self.assertTrue(
+            resp.json["headers"] and check_dict(option['headers'], resp.json["headers"]),
+            f"json body not setting right: {str(resp.json['headers'])}"
+        )
 
 
 if __name__ == '__main__':
