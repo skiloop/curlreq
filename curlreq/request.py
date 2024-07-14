@@ -3,9 +3,9 @@ http request
 """
 
 try:
-    import idna
+    import idna as IDNA
 except ModuleNotFoundError:
-    idna = None
+    IDNA = None
 import json as complexjson
 from base64 import b64encode
 from io import UnsupportedOperation
@@ -114,6 +114,7 @@ class PreparedRequest:
         #: integer denoting starting position of a readable file-like body.
         self._body_position = None
 
+    # pylint: disable=too-many-arguments
     def prepare(
             self,
             method=None,
@@ -157,16 +158,6 @@ class PreparedRequest:
         if self.method is not None:
             self.method = to_native_string(self.method.upper())
 
-    @staticmethod
-    def _get_idna_encoded_host(host):
-        if idna is None:
-            return host
-        try:
-            host = idna.encode(host, uts46=True).decode("utf-8")
-        except idna.IDNAError as exc:
-            raise UnicodeError(exc) from exc
-        return host
-
     def prepare_url(self, url, params):
         """Prepares the given HTTP URL."""
         #: Accept objects that have string representations.
@@ -190,39 +181,10 @@ class PreparedRequest:
             return
 
         # Support for unicode domain names and paths.
-        try:
-            scheme, auth, host, port, path, query, fragment = parse_url(url)
-        except LocationParseError as e:
-            raise InvalidURL(*e.args) from e
-
-        if not scheme:
-            raise MissingSchema(
-                f"Invalid URL {url!r}: No scheme supplied. "
-                f"Perhaps you meant https://{url}?"
-            )
-
-        if not host:
-            raise InvalidURL(f"Invalid URL {url!r}: No host supplied")
-
-        # In general, we want to try IDNA encoding the hostname if the string contains
-        # non-ASCII characters. This allows users to automatically get the correct IDNA
-        # behaviour. For strings containing only ASCII characters, we need to also verify
-        # it doesn't start with a wildcard (*), before allowing the unencoded hostname.
-        if not unicode_is_ascii(host):
-            try:
-                host = self._get_idna_encoded_host(host)
-            except UnicodeError as e:
-                raise InvalidURL("URL has an invalid label.") from e
-        elif host.startswith(("*", ".")):
-            raise InvalidURL("URL has an invalid label.")
+        scheme, auth, host, port, path, query, fragment = _parse_and_check_url(url)
 
         # Carefully reconstruct the network location
-        netloc = auth or ""
-        if netloc:
-            netloc += "@"
-        netloc += host
-        if port:
-            netloc += f":{port}"
+        netloc = (f"{auth}@" or "") + host + (f":{port}" if port else "")
 
         # Bare domains aren't valid URLs.
         if not path:
@@ -233,10 +195,7 @@ class PreparedRequest:
 
         enc_params = encode_params(params)
         if enc_params:
-            if query:
-                query = f"{query}&{enc_params}"
-            else:
-                query = enc_params
+            query = f"{query}&{enc_params}" if query else enc_params
 
         url = re_quote_uri(urlunparse([scheme, netloc, path, None, query, fragment]))
         self.url = url
@@ -252,28 +211,57 @@ class PreparedRequest:
                 name, value = header
                 self.headers[to_native_string(name)] = value
 
+    def _prepare_stream_body(self, data):
+        """
+        prepare stream body
+        """
+        try:
+            length = super_len(data)
+        except (TypeError, AttributeError, UnsupportedOperation):
+            length = None
+
+        body = data
+
+        if getattr(body, "tell", None) is not None:
+            # Record the current file position before reading.
+            # This will allow us to rewind a file in the event
+            # of a redirect.
+            try:
+                self._body_position = body.tell()
+            except OSError:
+                # This differentiates from None, allowing us to catch
+                # a failed `tell()` later when trying to rewind the body
+                self._body_position = object()
+
+        if length:
+            self.headers["Content-Length"] = BuiltinString(length)
+        else:
+            self.headers["Transfer-Encoding"] = "chunked"
+        self.body = body
+
+    def _prepare_json_body(self, json):
+        # urllib3 requires a bytes-like body. Python 2's json.dumps
+        # provides this natively, but Python 3 gives a Unicode string.
+
+        try:
+            body = complexjson.dumps(json, allow_nan=False)
+        except ValueError as exc:
+            raise InvalidJSONError(exc, request=self) from exc
+
+        if not isinstance(body, bytes):
+            self.body = body.encode("utf-8")
+        self.headers['Content-Type'] = "application/json"
+        self.body = body
+
     def prepare_body(self, data, files, json=None):
         """Prepares the given HTTP body data."""
 
-        # Check if file, fo, generator, iterator.
+        # Check if files, fo, generator, iterator.
         # If not, run through normal process.
 
-        # Nottin' on you.
-        body = None
-        content_type = None
-
         if not data and json is not None:
-            # urllib3 requires a bytes-like body. Python 2's json.dumps
-            # provides this natively, but Python 3 gives a Unicode string.
-            content_type = "application/json"
-
-            try:
-                body = complexjson.dumps(json, allow_nan=False)
-            except ValueError as exc:
-                raise InvalidJSONError(exc, request=self) from exc
-
-            if not isinstance(body, bytes):
-                body = body.encode("utf-8")
+            self._prepare_json_body(json)
+            return
 
         is_stream = all(
             [
@@ -281,55 +269,39 @@ class PreparedRequest:
                 not isinstance(data, (basestring, list, tuple, Mapping)),
             ]
         )
-
+        if is_stream and files:
+            raise NotImplementedError(
+                "Streamed bodies and files are mutually exclusive."
+            )
         if is_stream:
-            try:
-                length = super_len(data)
-            except (TypeError, AttributeError, UnsupportedOperation):
-                length = None
+            self._prepare_stream_body(data)
+            return
+        self._prepare_multi_part(data, files)
+        return
 
-            body = data
-
-            if getattr(body, "tell", None) is not None:
-                # Record the current file position before reading.
-                # This will allow us to rewind a file in the event
-                # of a redirect.
-                try:
-                    self._body_position = body.tell()
-                except OSError:
-                    # This differentiates from None, allowing us to catch
-                    # a failed `tell()` later when trying to rewind the body
-                    self._body_position = object()
-
-            if files:
-                raise NotImplementedError(
-                    "Streamed bodies and files are mutually exclusive."
-                )
-
-            if length:
-                self.headers["Content-Length"] = BuiltinString(length)
-            else:
-                self.headers["Transfer-Encoding"] = "chunked"
+    def _prepare_multi_part(self, data, files):
+        """
+        prepare body from files
+        """
+        content_type, body = None, None
+        # Multi-part file uploads.
+        if files:
+            (body, content_type) = encode_files(files, data)
         else:
-            # Multi-part file uploads.
-            if files:
-                (body, content_type) = encode_files(files, data)
-            else:
-                if data:
-                    body = encode_params(data)
-                    if isinstance(body, str):
-                        body = body.encode('utf-8')
-                    if isinstance(data, basestring) or hasattr(data, "read"):
-                        content_type = None
-                    else:
-                        content_type = "application/x-www-form-urlencoded"
+            if data:
+                body = encode_params(data)
+                if isinstance(body, str):
+                    body = body.encode('utf-8')
+                if isinstance(data, basestring) or hasattr(data, "read"):
+                    content_type = None
+                else:
+                    content_type = "application/x-www-form-urlencoded"
 
-            self.prepare_content_length(body)
+        self.prepare_content_length(body)
 
-            # Add content-type if it wasn't explicitly provided.
-            if content_type and ("content-type" not in self.headers):
-                self.headers["Content-Type"] = content_type
-
+        # Add content-type if it wasn't explicitly provided.
+        if content_type and ("Content-Type" not in self.headers):
+            self.headers["Content-Type"] = content_type
         self.body = body
 
     def prepare_content_length(self, body):
@@ -389,6 +361,7 @@ class PreparedRequest:
         self.headers['Cookie'] = cookie_str
 
 
+# pylint: disable=too-many-instance-attributes
 class Request:
     """
     HTTP request class
@@ -432,3 +405,50 @@ class Request:
             self.json
         )
         return preq
+
+
+def _get_idna_encoded_host(host):
+    """
+
+    """
+    # pylint: disable=fixme
+    # TODO: is this ok?
+    if IDNA is None:
+        return host
+    try:
+        host = IDNA.encode(host, uts46=True).decode("utf-8")
+    except IDNA.IDNAError as exc:
+        raise UnicodeError(exc) from exc
+    return host
+
+
+def _parse_and_check_url(url):
+    """
+    parse and check if url is valid
+    """
+    try:
+        scheme, auth, host, port, path, query, fragment = parse_url(url)
+    except LocationParseError as e:
+        raise InvalidURL(*e.args) from e
+
+    if not scheme:
+        raise MissingSchema(
+            f"Invalid URL {url!r}: No scheme supplied. "
+            f"Perhaps you meant https://{url}?"
+        )
+
+    if not host:
+        raise InvalidURL(f"Invalid URL {url!r}: No host supplied")
+
+    # In general, we want to try IDNA encoding the hostname if the string contains
+    # non-ASCII characters. This allows users to automatically get the correct IDNA
+    # behaviour. For strings containing only ASCII characters, we need to also verify
+    # it doesn't start with a wildcard (*), before allowing the unencoded hostname.
+    if not unicode_is_ascii(host):
+        try:
+            host = _get_idna_encoded_host(host)
+        except UnicodeError as e:
+            raise InvalidURL("URL has an invalid label.") from e
+    elif host.startswith(("*", ".")):
+        raise InvalidURL("URL has an invalid label.")
+    return scheme, auth, host, port, path, query, fragment

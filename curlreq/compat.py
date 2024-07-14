@@ -51,6 +51,7 @@ def guess_filename(obj):
         return os.path.basename(name)
     return None
 
+
 def to_key_val_list(value):
     """convert value to key-value tuples"""
     if value is None:
@@ -132,12 +133,11 @@ def encode_multipart_form_data(fields, boundary=None):
     return body.getvalue(), content_type
 
 
-def encode_files(files, data):
-    """encode files"""
+def _form_new_fields(fields):
+    """
+    form new fields
+    """
     new_fields = []
-    fields = to_key_val_list(data or {})
-    files = to_key_val_list(files or {})
-
     for field, val in fields:
         if isinstance(val, basestring) or not hasattr(val, "__iter__"):
             val = [val]
@@ -153,11 +153,18 @@ def encode_files(files, data):
                         v.encode("utf-8") if isinstance(v, str) else v,
                     )
                 )
+    return new_fields
+
+
+def encode_files(files, data):
+    """encode files"""
+    fields = to_key_val_list(data or {})
+    files = to_key_val_list(files or {})
+    new_fields = _form_new_fields(fields)
 
     for (k, v) in files:
         # support for explicit filename
-        ft = None
-        fh = None
+        ft, fh = None, None
         if isinstance(v, (tuple, list)):
             if len(v) == 2:
                 fn, fp = v
@@ -166,8 +173,7 @@ def encode_files(files, data):
             else:
                 fn, fp, ft, fh = v
         else:
-            fn = guess_filename(v) or k
-            fp = v
+            fn, fp = (guess_filename(v) or k), v
 
         if isinstance(fp, (str, bytes, bytearray)):
             fdata = fp

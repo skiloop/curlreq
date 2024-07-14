@@ -10,6 +10,7 @@ from .exceptions import InvalidHeader
 from .request import Request
 
 
+# pylint: disable=too-many-instance-attributes
 class Response:
     """
     HTTP response class

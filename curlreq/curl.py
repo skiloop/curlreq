@@ -107,7 +107,6 @@ class Curl(pycurl.Curl):
         proxy = proxies.get(scheme)
         if proxy:
             self.setopt(pycurl.PROXY, proxy)
-            return
 
     def _prepare_kwargs(self, url, **kwargs):
         """
@@ -252,6 +251,7 @@ class SSLOptions(CurlOption):
             curl.set_option(pycurl.SSL_CIPHER_LIST, self.ciphers)
 
 
+# pylint: disable=too-many-instance-attributes
 class JA3Option(CurlOption):
     """enable CurlReq To modify JA3 fingerprinting"""
 

@@ -8,31 +8,39 @@ version = "0.1.0"
 description = "A requests-like http client base on pycurl"
 license = { text = "MIT License" }
 readme = { file = "README.md", content-type = "text/markdown" }
-keywords = ["curl","http client","requests","libcurl"]
+keywords = ["curl", "http client", "requests", "libcurl"]
 
 authors = [
     { name = "Jason Stone", email = "skiloop@gmail.com" }
 ]
 
 classifiers = [
-     "License :: OSI Approved :: MIT License",
-        "Development Status :: 5 - Production/Stable",
-        "Environment :: Console :: Curses",
-        "Operating System :: MacOS",
-        "Operating System :: POSIX",
-        "Operating System :: Microsoft :: Windows",
-        "Programming Language :: Python :: 3 :: Only",
-        "Programming Language :: Python :: 3.8",
-        "Programming Language :: Python :: 3.9",
-        "Programming Language :: Python :: 3.10",
-        "Programming Language :: Python :: 3.11",
-        "Programming Language :: Python :: Implementation :: CPython",
-        "Topic :: Security",
-        "Topic :: Internet :: WWW/HTTP",
-        "Topic :: Software Development :: Testing",
-        "Typing :: Typed",
+    "License :: OSI Approved :: MIT License",
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Console :: Curses",
+    "Operating System :: MacOS",
+    "Operating System :: POSIX",
+    "Operating System :: Microsoft :: Windows",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Topic :: Security",
+    "Topic :: Internet :: WWW/HTTP",
+    "Topic :: Software Development :: Testing",
+    "Typing :: Typed",
 ]
 requires-python = ">=3.7"
+
+dependencies = [
+    "pycurl>=7.45.0",
+    "urllib3>=1.21"
+]
+
+[project.optional-dependencies]
+idna = ["idna"]
 
 [project.urls]
 homepage = "https://github.com/skiloop/curlreq"
